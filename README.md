@@ -6,15 +6,25 @@ library.
 
 ## Building
 
-The core library isn't published to a repository yet, so install it to your local Maven repository first, then build
-this mod with JDK 25 or newer.
+Build with JDK 25 or newer. The mod is in `build/libs/`.
 
 ```sh
-cd ../RewoundModAPI && mvn install
-cd ../RewoundFabricModAPI && ./gradlew build
+./gradlew build
 ```
 
-The mod is in `build/libs/`.
+## Developer Usage
+
+The mod is available through [JitPack](https://jitpack.io/#HypixelNCP/FabricModAPI).
+
+```gradle
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation 'com.github.HypixelNCP:FabricModAPI:1.0.3'
+}
+```
 
 ## Debugging
 

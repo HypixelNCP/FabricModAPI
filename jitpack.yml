@@ -1,0 +1,6 @@
+before_install:
+  - curl -fsSL https://api.adoptium.net/v3/binary/latest/25/ga/linux/x64/jdk/hotspot/normal/eclipse -o /tmp/jdk25.tar.gz
+  - mkdir -p /tmp/jdk25
+  - tar xzf /tmp/jdk25.tar.gz -C /tmp/jdk25 --strip-components=1
+install:
+  - JAVA_HOME=/tmp/jdk25 ./gradlew build publishToMavenLocal
