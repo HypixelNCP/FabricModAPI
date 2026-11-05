@@ -1,19 +1,18 @@
 {
   "schemaVersion": 1,
-  "id": "hypixel-mod-api",
+  "id": "rewound-mod-api",
   "version": "${version}",
-  "name": "Hypixel Mod API",
-  "description": "",
+  "name": "Rewound Mod API",
+  "description": "Implementation of the Rewound Mod API for Fabric.",
   "authors": [],
   "contact": {
-    "repo": "https://github.com/HypixelDev/FabricModAPI"
+    "repo": "https://github.com/HypixelNCP/modapi"
   },
   "license": "MIT",
-  "icon": "assets/hypixel-mod-api/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
-      "net.hypixel.modapi.fabric.FabricModAPI"
+      "cc.rewound.modapi.fabric.FabricModAPI"
     ]
   },
   "depends": {

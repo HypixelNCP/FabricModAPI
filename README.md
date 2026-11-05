@@ -1,3 +1,26 @@
-# Fabric Mod API
+# Rewound Fabric Mod API
 
-This repository contains the implementation of the Hypixel Mod API for the Fabric Mod Loader for end-users. If you are a developer, and are looking to utilise the API you should look at the core [Hypixel Mod API](https://github.com/HypixelDev/ModAPI) repository.
+A fork of [Hypixel's FabricModAPI](https://github.com/HypixelDev/FabricModAPI) that implements the
+[Rewound Mod API](https://github.com/HypixelNCP/modapi) for Fabric. It's for end users; developers should look at the core
+library.
+
+## Building
+
+The core library isn't published to a repository yet, so install it to your local Maven repository first, then build
+this mod with JDK 25 or newer.
+
+```sh
+cd ../RewoundModAPI && mvn install
+cd ../RewoundFabricModAPI && ./gradlew build
+```
+
+The mod is in `build/libs/`.
+
+## Debugging
+
+Debug mode runs in a development environment, or with `-Dcc.rewound.modapi.debug=true`. It subscribes to every event and
+logs what the server sends.
+
+## License
+
+MIT, as upstream. See [LICENSE](LICENSE).

@@ -16,9 +16,6 @@ repositories {
     // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
     // See https://docs.gradle.org/current/userguide/declaring_repositories.html
     // for more information about repositories.
-    maven {
-        url "https://repo.hypixel.net/repository/Hypixel/"
-    }
     mavenLocal()
 }
 
@@ -28,7 +25,7 @@ dependencies {
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    include implementation("net.hypixel:mod-api:${project.mod_api_version}")
+    include implementation("cc.rewound:mod-api:${project.mod_api_version}")
 }
 
 processResources {
@@ -69,7 +66,7 @@ java {
 
 jar {
     from("LICENSE") {
-        rename { "${it}_HypixelModAPI"}
+        rename { "${it}_RewoundModAPI"}
     }
 }
 

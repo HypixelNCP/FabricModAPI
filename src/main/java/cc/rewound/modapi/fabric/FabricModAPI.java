@@ -1,4 +1,4 @@
-package net.hypixel.modapi.fabric;
+package cc.rewound.modapi.fabric;
 
 import com.mojang.logging.LogUtils;
 import io.netty.buffer.ByteBuf;
@@ -9,15 +9,19 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.loader.api.FabricLoader;
-import net.hypixel.modapi.HypixelModAPI;
-import net.hypixel.modapi.HypixelModAPIImplementation;
-import net.hypixel.modapi.fabric.event.HypixelModAPICallback;
-import net.hypixel.modapi.fabric.event.HypixelModAPIErrorCallback;
-import net.hypixel.modapi.fabric.payload.ClientboundHypixelPayload;
-import net.hypixel.modapi.fabric.payload.ServerboundHypixelPayload;
-import net.hypixel.modapi.packet.HypixelPacket;
-import net.hypixel.modapi.packet.impl.clientbound.ClientboundHelloPacket;
-import net.hypixel.modapi.packet.impl.clientbound.event.ClientboundLocationPacket;
+import cc.rewound.modapi.RewoundModAPI;
+import cc.rewound.modapi.RewoundModAPIImplementation;
+import cc.rewound.modapi.fabric.event.RewoundModAPICallback;
+import cc.rewound.modapi.fabric.event.RewoundModAPIErrorCallback;
+import cc.rewound.modapi.fabric.payload.ClientboundRewoundPayload;
+import cc.rewound.modapi.fabric.payload.ServerboundRewoundPayload;
+import cc.rewound.modapi.packet.EventPacket;
+import cc.rewound.modapi.packet.RewoundPacket;
+import cc.rewound.modapi.packet.impl.clientbound.ClientboundHelloPacket;
+import cc.rewound.modapi.packet.impl.clientbound.event.ClientboundGameFinishPacket;
+import cc.rewound.modapi.packet.impl.clientbound.event.ClientboundGameRejoinPacket;
+import cc.rewound.modapi.packet.impl.clientbound.event.ClientboundGameStartPacket;
+import cc.rewound.modapi.packet.impl.clientbound.event.ClientboundLocationPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -25,22 +29,22 @@ import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.ApiStatus;
 import org.slf4j.Logger;
 
-public class FabricModAPI implements ClientModInitializer, HypixelModAPIImplementation {
+public class FabricModAPI implements ClientModInitializer, RewoundModAPIImplementation {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final boolean DEBUG_MODE = FabricLoader.getInstance().isDevelopmentEnvironment() || Boolean.getBoolean("net.hypixel.modapi.debug");
+    private static final boolean DEBUG_MODE = FabricLoader.getInstance().isDevelopmentEnvironment() || Boolean.getBoolean("cc.rewound.modapi.debug");
 
-    private boolean onHypixel = false;
+    private boolean onRewound = false;
 
     @GameTest
     @Override
     public void onInitializeClient() {
-        HypixelModAPI.getInstance().setModImplementation(this);
+        RewoundModAPI.getInstance().setModImplementation(this);
     }
 
     @Override
     public void onInit() {
-        HypixelModAPI.getInstance().createHandler(ClientboundHelloPacket.class, packet -> onHypixel = true);
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> onHypixel = false);
+        RewoundModAPI.getInstance().createHandler(ClientboundHelloPacket.class, packet -> onRewound = true);
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> onRewound = false);
 
         if (DEBUG_MODE) {
             LOGGER.info("Debug mode is enabled!");
@@ -51,20 +55,20 @@ public class FabricModAPI implements ClientModInitializer, HypixelModAPIImplemen
     }
 
     @Override
-    public boolean sendPacket(HypixelPacket packet) {
-        if (!isConnectedToHypixel()) {
+    public boolean sendPacket(RewoundPacket packet) {
+        if (!isConnectedToRewound()) {
             return false;
         }
 
-        ServerboundHypixelPayload hypixelPayload = new ServerboundHypixelPayload(packet);
+        ServerboundRewoundPayload rewoundPayload = new ServerboundRewoundPayload(packet);
 
         if (Minecraft.getInstance().getConnection() != null) {
-            ClientPlayNetworking.send(hypixelPayload);
+            ClientPlayNetworking.send(rewoundPayload);
             return true;
         }
 
         try {
-            ClientConfigurationNetworking.send(hypixelPayload);
+            ClientConfigurationNetworking.send(rewoundPayload);
             return true;
         } catch (IllegalStateException ignored) {
             LOGGER.warn("Failed to send a packet as the client is not connected to a server '{}'", packet);
@@ -73,18 +77,18 @@ public class FabricModAPI implements ClientModInitializer, HypixelModAPIImplemen
     }
 
     @Override
-    public boolean isConnectedToHypixel() {
-        return onHypixel;
+    public boolean isConnectedToRewound() {
+        return onRewound;
     }
 
     /**
-     * Reloads the identifiers that are registered in the Hypixel Mod API and makes sure that the packets are registered.
+     * Reloads the identifiers that are registered in the Rewound Mod API and makes sure that the packets are registered.
      * <p>
-     * This method is available for internal use by Hypixel to add new packets externally, and is not intended for use by other developers.
+     * This method is available for internal use to add new packets externally, and is not intended for use by other developers.
      */
     @ApiStatus.Internal
     public static void reloadRegistrations() {
-        for (String identifier : HypixelModAPI.getInstance().getRegistry().getClientboundIdentifiers()) {
+        for (String identifier : RewoundModAPI.getInstance().getRegistry().getClientboundIdentifiers()) {
             try {
                 registerClientbound(identifier);
                 LOGGER.info("Registered clientbound packet with identifier '{}'", identifier);
@@ -93,7 +97,7 @@ public class FabricModAPI implements ClientModInitializer, HypixelModAPIImplemen
             }
         }
 
-        for (String identifier : HypixelModAPI.getInstance().getRegistry().getServerboundIdentifiers()) {
+        for (String identifier : RewoundModAPI.getInstance().getRegistry().getServerboundIdentifiers()) {
             try {
                 registerServerbound(identifier);
                 LOGGER.info("Registered serverbound packet with identifier '{}'", identifier);
@@ -105,10 +109,10 @@ public class FabricModAPI implements ClientModInitializer, HypixelModAPIImplemen
 
     private static void registerClientbound(String identifier) {
         try {
-            CustomPacketPayload.Type<ClientboundHypixelPayload> clientboundId = new CustomPacketPayload.Type<>(
+            CustomPacketPayload.Type<ClientboundRewoundPayload> clientboundId = new CustomPacketPayload.Type<>(
                     Identifier.parse(identifier)
             );
-            StreamCodec<ByteBuf, ClientboundHypixelPayload> codec = ClientboundHypixelPayload.buildCodec(clientboundId);
+            StreamCodec<ByteBuf, ClientboundRewoundPayload> codec = ClientboundRewoundPayload.buildCodec(clientboundId);
             PayloadTypeRegistry.clientboundPlay().register(clientboundId, codec);
             PayloadTypeRegistry.clientboundConfiguration().register(clientboundId, codec);
 
@@ -127,17 +131,17 @@ public class FabricModAPI implements ClientModInitializer, HypixelModAPIImplemen
         }
     }
 
-    private static void handleIncomingPayload(String identifier, ClientboundHypixelPayload payload) {
+    private static void handleIncomingPayload(String identifier, ClientboundRewoundPayload payload) {
         if (!payload.isSuccess()) {
             LOGGER.warn("Received an error response for packet {}: {}", identifier, payload.getErrorReason());
             try {
-                HypixelModAPI.getInstance().handleError(identifier, payload.getErrorReason());
+                RewoundModAPI.getInstance().handleError(identifier, payload.getErrorReason());
             } catch (Exception e) {
                 LOGGER.error("An error occurred while handling error response for packet {}", identifier, e);
             }
 
             try {
-                HypixelModAPIErrorCallback.EVENT.invoker().onError(identifier, payload.getErrorReason());
+                RewoundModAPIErrorCallback.EVENT.invoker().onError(identifier, payload.getErrorReason());
             } catch (Exception e) {
                 LOGGER.error("An error occurred while handling error response for packet {}", identifier, e);
             }
@@ -145,13 +149,13 @@ public class FabricModAPI implements ClientModInitializer, HypixelModAPIImplemen
         }
 
         try {
-            HypixelModAPI.getInstance().handle(payload.getPacket());
+            RewoundModAPI.getInstance().handle(payload.getPacket());
         } catch (Exception e) {
             LOGGER.error("An error occurred while handling packet {}", identifier, e);
         }
 
         try {
-            HypixelModAPICallback.EVENT.invoker().onPacketReceived(payload.getPacket());
+            RewoundModAPICallback.EVENT.invoker().onPacketReceived(payload.getPacket());
         } catch (Exception e) {
             LOGGER.error("An error occurred while handling packet {}", identifier, e);
         }
@@ -159,10 +163,10 @@ public class FabricModAPI implements ClientModInitializer, HypixelModAPIImplemen
 
     private static void registerServerbound(String identifier) {
         try {
-            CustomPacketPayload.Type<ServerboundHypixelPayload> serverboundId = new CustomPacketPayload.Type<>(
+            CustomPacketPayload.Type<ServerboundRewoundPayload> serverboundId = new CustomPacketPayload.Type<>(
                     Identifier.parse(identifier)
             );
-            StreamCodec<ByteBuf, ServerboundHypixelPayload> codec = ServerboundHypixelPayload.buildCodec();
+            StreamCodec<ByteBuf, ServerboundRewoundPayload> codec = ServerboundRewoundPayload.buildCodec();
             PayloadTypeRegistry.serverboundPlay().register(serverboundId, codec);
             PayloadTypeRegistry.serverboundConfiguration().register(serverboundId, codec);
         } catch (IllegalArgumentException ignored) {
@@ -172,12 +176,18 @@ public class FabricModAPI implements ClientModInitializer, HypixelModAPIImplemen
 
     private static void registerDebug() {
         // Register events
-        HypixelModAPI.getInstance().subscribeToEventPacket(ClientboundLocationPacket.class);
+        subscribeDebug(ClientboundLocationPacket.class);
+        subscribeDebug(ClientboundGameStartPacket.class);
+        subscribeDebug(ClientboundGameFinishPacket.class);
+        subscribeDebug(ClientboundGameRejoinPacket.class);
 
-        HypixelModAPI.getInstance().createHandler(ClientboundLocationPacket.class, packet -> LOGGER.info("Received location packet {}", packet))
-                .onError(error -> LOGGER.error("Received error response for location packet: {}", error));
+        RewoundModAPICallback.EVENT.register(packet -> LOGGER.info("Received packet {}", packet));
+        RewoundModAPIErrorCallback.EVENT.register((identifier, error) -> LOGGER.error("Received error response for packet {}: {}", identifier, error));
+    }
 
-        HypixelModAPICallback.EVENT.register(packet -> LOGGER.info("Received packet {}", packet));
-        HypixelModAPIErrorCallback.EVENT.register((identifier, error) -> LOGGER.error("Received error response for packet {}: {}", identifier, error));
+    private static <T extends EventPacket> void subscribeDebug(Class<T> event) {
+        RewoundModAPI.getInstance().subscribeToEventPacket(event);
+        RewoundModAPI.getInstance().createHandler(event, packet -> LOGGER.info("Received event {}", packet))
+                .onError(error -> LOGGER.error("Received error response for event {}: {}", event.getSimpleName(), error));
     }
 }
